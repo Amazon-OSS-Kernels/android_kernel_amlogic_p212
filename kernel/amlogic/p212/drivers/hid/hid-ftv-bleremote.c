@@ -65,7 +65,6 @@
 #define CONSUMER_PRESET_2_KEY 0x27f
 #define CONSUMER_AUTO_PAIR_KEY 0x280
 #define CONSUMER_SETTINGS_KEY  0x33
-#define CONSUMER_METRIC_VIRTUAL_KEY 0x230
 
 
 #define CUSTOM_APP1	0xFA
@@ -76,7 +75,6 @@
 #define CONSUMER_PRESET_2 0x27f
 #define CONSUMER_AUTO_PAIR 0x280
 #define CONSUMER_SETTINGS  0x2ee
-#define CONSUMER_METRIC_VIRTUAL 0x2ff /* KEY_MAX */
 
 /* Debug feature to trace audio packets being received */
 #define DEBUG_AUDIO_RECEPTION 1
@@ -739,9 +737,6 @@ static int ftv_remote_input_mapping(struct hid_device *hdev,
 			return 1;
 		case CONSUMER_SETTINGS_KEY:
 			hid_map_usage_clear(hi, usage, bit, max, EV_KEY, CONSUMER_SETTINGS);
-			return 1;
-		case CONSUMER_METRIC_VIRTUAL_KEY:
-			hid_map_usage_clear(hi, usage, bit, max, EV_KEY, CONSUMER_METRIC_VIRTUAL);
 			return 1;
 		default:
 			break;
