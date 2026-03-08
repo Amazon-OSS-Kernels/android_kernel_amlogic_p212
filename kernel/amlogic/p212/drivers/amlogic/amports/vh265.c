@@ -156,6 +156,8 @@ static int start_decode_buf_level = 0x8000;
 static unsigned int frmbase_cont_bitlevel = 0x60;
 static unsigned int decode_timeout_val = 200;
 
+static u32 disable_ip_mode;
+
 /*data_resend_policy:
 	bit 0, stream base resend data when decoding buf empty
 */
@@ -1231,6 +1233,7 @@ struct PIC_s {
 	u32 aspect_ratio_idc;
 	u32 sar_width;
 	u32 sar_height;
+	bool ip_mode;
 } /*PIC_t */;
 
 #define MAX_TILE_COL_NUM    5
@@ -1512,6 +1515,7 @@ struct hevc_state_s {
 	u32 vf_put_count;
 	u32 decode_size;
 	u32 lowlatency_flag;
+	bool ip_mode;
 } /*hevc_stru_t */;
 
 #ifdef SUPPORT_10BIT
@@ -4371,6 +4375,8 @@ static struct PIC_s *get_new_pic(struct hevc_state_s *hevc,
 		new_pic->error_mark = 0;
 		/* new_pic->output_ready = 0; */
 		new_pic->num_reorder_pic = rpm_param->p.sps_num_reorder_pics_0;
+		new_pic->ip_mode = hevc->lowlatency_flag ? true :
+							(!new_pic->num_reorder_pic && !disable_ip_mode) ? true : false;
 		new_pic->losless_comp_body_size = hevc->losless_comp_body_size;
 		new_pic->POC = hevc->curr_POC;
 		new_pic->pic_struct = hevc->curr_pic_struct;
@@ -4428,7 +4434,7 @@ static void flush_output(struct hevc_state_s *hevc, struct PIC_s *pic)
 			}
 		}
 		/*num_reorder_pic = 0 means IP only output*/
-		if (pic->POC != INVALID_POC && !hevc->lowlatency_flag)
+		if (pic->POC != INVALID_POC && !pic->ip_mode)
 			pic->output_mark = 1;
 		pic->recon_mark = 1;
 	}
@@ -4695,7 +4701,7 @@ static inline void hevc_pre_pic(struct hevc_state_s *hevc,
 					hevc->used_4k_num = -1;
 				}
 			}
-			if (pic->num_reorder_pic && !hevc->lowlatency_flag)
+			if (!pic->ip_mode)
 				pic->output_mark = 1;
 			pic->recon_mark = 1;
 		}
@@ -4856,6 +4862,8 @@ static int hevc_slice_segment_header_process(struct hevc_state_s *hevc,
 	if (hevc->wait_buf == 0) {
 		hevc->sps_num_reorder_pics_0 =
 			rpm_param->p.sps_num_reorder_pics_0;
+		hevc->ip_mode = (!hevc->sps_num_reorder_pics_0 &&
+							!disable_ip_mode) ? true : false;
 		hevc->m_temporalId = rpm_param->p.m_temporalId;
 		hevc->m_nalUnitType = rpm_param->p.m_nalUnitType;
 		hevc->interlace_flag =
@@ -7418,7 +7426,7 @@ pic_done:
 
 			reset_process_time(hevc);
 
-			if (hevc->lowlatency_flag) {
+			if (hevc->ip_mode) {
 				decoded_poc = hevc->curr_POC;
 				pic = get_pic_by_POC(hevc, decoded_poc);
 				if (pic && (pic->POC != INVALID_POC)) {
@@ -7499,7 +7507,7 @@ pic_done:
 						}
 					} else {
 						if ((pic_display->
-						slice_type != 2) && pic_display->num_reorder_pic) {
+						slice_type != 2) && !pic_display->ip_mode) {
 						pic_display->output_ready = 0;
 						} else {
 							prepare_display_buf
@@ -7937,6 +7945,8 @@ pic_done:
 		} else {
 			hevc->sps_num_reorder_pics_0 =
 			hevc->param.p.sps_num_reorder_pics_0;
+			hevc->ip_mode = hevc->lowlatency_flag ? true :
+					(!hevc->sps_num_reorder_pics_0 && !disable_ip_mode) ? true : false;
 			hevc->pic_list_init_flag = 1;
 #ifdef MULTI_INSTANCE_SUPPORT
 			if (hevc->m_ins_flag) {
@@ -9654,10 +9664,11 @@ static void vh265_dump_state(struct vdec_s *vdec)
 		"====== %s\n", __func__);
 
 	hevc_print(hevc, 0,
-		"width/height (%d/%d), reorder_pic_num %d buf count(bufspec size) %d\n",
+		"width/height (%d/%d), reorder_pic_num %d ip_mode %d buf count(bufspec size) %d\n",
 		hevc->frame_width,
 		hevc->frame_height,
 		hevc->sps_num_reorder_pics_0,
+		hevc->ip_mode,
 		get_work_pic_num(hevc)
 		);
 
@@ -10311,6 +10322,9 @@ MODULE_PARM_DESC(udebug_pause_val, "\n udebug_pause_val\n");
 module_param(frmbase_cont_bitlevel, uint, 0664);
 MODULE_PARM_DESC(frmbase_cont_bitlevel,
 	"\n frmbase_cont_bitlevel\n");
+
+module_param(disable_ip_mode, uint, 0664);
+MODULE_PARM_DESC(disable_ip_mode, "\n amvdec_h265 disable ip_mode\n");
 
 module_init(amvdec_h265_driver_init_module);
 module_exit(amvdec_h265_driver_remove_module);
