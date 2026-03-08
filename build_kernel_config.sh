@@ -7,7 +7,26 @@
 ################################################################################
 
 KERNEL_SUBPATH="kernel/amlogic/p212"
-DEFCONFIG_NAME="stark_defconfig"
+P212_VARIANT="${P212_VARIANT:-${1:-}}"
+
+if [ -z "$P212_VARIANT" ]; then
+  echo "ERROR: Missing P212_VARIANT. Set env var or pass first arg (stark|needle)." >&2
+  exit 1
+fi
+
+case "$P212_VARIANT" in
+  stark)
+    DEFCONFIG_NAME="stark_defconfig"
+    ;;
+  needle)
+    DEFCONFIG_NAME="needle_defconfig"
+    ;;
+  *)
+    echo "ERROR: Unsupported P212_VARIANT '$P212_VARIANT' (expected: stark or needle)" >&2
+    exit 1
+    ;;
+esac
+
 TARGET_ARCH="arm64"
 MAKE_DTBS=y
 
