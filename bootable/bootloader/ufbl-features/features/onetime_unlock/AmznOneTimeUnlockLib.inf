@@ -1,0 +1,33 @@
+# Copyright (C) 2020 Amazon.com Inc. or its affiliates.  All Rights Reserved.
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = AmznOneTimeUnlockLib
+  FILE_GUID                      = f7a6f2b3-3ea6-4edd-bbe6-4d814218963b
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = AmznOneTimeUnlockLib
+
+#
+# The following information is for reference only and not required by the build tools.
+#
+#  VALID_ARCHITECTURES           = ARM AARCH64
+#
+
+[Sources]
+  onetime_unlock.c
+  onetime_unlock_ltc.c
+
+[BuildOptions.AARCH64]
+    GCC:*_*_*_CC_FLAGS = -DUFBL_PROJ_NEPTUNE -DUFBL_FEATURE_IDME -DUFBL_FEATURE_ONETIME_UNLOCK -DUFBL_FEATURE_ONETIME_UNLOCK_LTC -DLTC_SOURCE -DLTC_NO_FILE -DUSE_LTM -DLTM_DESC -DLTC_CLEAN_STACK -D_WCHAR_T -ffunction-sections -fdata-sections -std=c99
+
+[Packages]
+  StdLib/StdLib.dec
+  MdePkg/MdePkg.dec
+  EmbeddedPkg/EmbeddedPkg.dec
+  ufbl-features/ufbl-features.dec
+  IdmePlatformPkg/IdmePlatformPkg.dec
+
+[LibraryClasses]
+  LibC
+  LibStdio
