@@ -118,15 +118,15 @@ config HID_ACRUX_FF
 	Say Y here if you want to enable force feedback support for ACRUX
 	game controllers.
 
-config HID_AMAZON_acc123
-	tristate "Amazon acc123 BT Keyboard / Trackpad"
+config HID_AMAZON_ASPEN
+	tristate "Amazon Aspen BT Keyboard / Trackpad"
 	depends on HID
 	default HID
 	---help---
-	Support for Amazon acc123 KB/TrackPad
+	Support for Amazon Aspen KB/TrackPad
 	This custom driver handle Vendor specific events.
 
-	Say Y here if you want to enable support for Amazon acc123 KB/TrackPad
+	Say Y here if you want to enable support for Amazon Aspen KB/TrackPad
 
 config HID_AMAZON_GP
         tristate "Amazon.com game controller support"
