@@ -155,7 +155,6 @@ function validate_output {
 # Phase 1: Set up execution
 validate_input_params
 source "${CONFIG_FILE}"
-
 setup_output_dir
 TARGET_DIR="$(cd "${TARGET_DIR}" && pwd)"
 display_config
