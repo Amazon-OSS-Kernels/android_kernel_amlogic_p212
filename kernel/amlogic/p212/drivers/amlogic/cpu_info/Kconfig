@@ -1,0 +1,10 @@
+config	AMLOGIC_CPU_INFO
+	boolean "Amlogic chipid"
+	default n
+	help
+	  say y to enable Amlogic chipid driver.
+
+config AMZN_CHIP_ID_FORMAT
+        bool "Amazon-style SoC ID support"
+        help
+          Select Y here to generate SoC ID in Amazon format (64-bit)

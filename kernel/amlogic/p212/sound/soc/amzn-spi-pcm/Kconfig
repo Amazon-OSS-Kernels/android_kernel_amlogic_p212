@@ -1,0 +1,6 @@
+menuconfig SND_AMZN_SPI_PCM
+	bool "Amazon SPI connected ADCs"
+	help
+	  Say Y if you want to add support for codecs attached to
+	  the SPI chip for Amazon voice feature
+
