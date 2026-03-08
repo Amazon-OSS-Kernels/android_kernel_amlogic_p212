@@ -1900,16 +1900,36 @@ static ssize_t print_aud_cap(char * buf, struct rx_audiocap * cap, char * forced
 static ssize_t show_aud_cap(struct device *dev,
 	struct device_attribute *attr, char *buf)
 {
-	int i, pos = 0;
+	int i, j, pos = 0;
 	struct rx_cap *pRXCap = &(hdmitx_device.RXCap);
+	static const char * const aud_sampling_frequency[] = {
+		"ReferToStreamHeader", "32", "44.1", "48", "88.2", "96",
+		"176.4", "192", NULL};
 
 	pos += snprintf(buf + pos, PAGE_SIZE,
 		"CodingType MaxChannels SamplingFreq SampleSize\n");
 
 	for (i = 0; i < pRXCap->AUD_count; i++) {
-		/* Ingore ReferToStreamHeader */
+		/* Ignore ReferToStreamHeader */
 		if (pRXCap->RxAudioCap[i].audio_format_code == 0)
 			continue;
+		/* Detect MPEG-H */
+		if (pRXCap->RxAudioCap[i].audio_format_code == 0xf) {
+		    if ((pRXCap->RxAudioCap[i].cc3 >> 3) == 0xb) {
+			pos += snprintf(buf + pos, PAGE_SIZE, "MPEG-H, 8 ch, ");
+			for (j = 0; j < 7; j++) {
+			    if (pRXCap->RxAudioCap[i].freq_cc & (1 << j))
+				pos += snprintf(buf + pos, PAGE_SIZE, "%s/",
+					aud_sampling_frequency[j + 1]);
+			}
+			pos += snprintf(buf + pos - 1, PAGE_SIZE, " kHz, ") - 1;
+			pos += snprintf(buf + pos, PAGE_SIZE, "Level 0x%x, ",
+				pRXCap->RxAudioCap[i].channel_num_max);
+			pos += snprintf(buf + pos, PAGE_SIZE, "Profile 0x%x\n",
+				(pRXCap->RxAudioCap[i].cc3 & 0x1));
+		    }
+		    continue;
+		}
 
 		pos += print_aud_cap(&buf[pos], &pRXCap->RxAudioCap[i], NULL);
 
