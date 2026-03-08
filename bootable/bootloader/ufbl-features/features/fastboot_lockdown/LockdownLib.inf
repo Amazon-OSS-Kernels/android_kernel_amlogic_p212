@@ -1,0 +1,32 @@
+# Copyright (C) 2020 Amazon.com Inc. or its affiliates.  All Rights Reserved.
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = LockdownLib
+  FILE_GUID                      = e8b9896a-85e5-40cf-90a5-8be607d2f5ee
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = LockdownLib
+
+#
+# The following information is for reference only and not required by the build tools.
+#
+#  VALID_ARCHITECTURES           = ARM AARCH64
+#
+
+[Sources]
+  amzn_fastboot_lockdown.c
+
+[BuildOptions.AARCH64]
+  GCC:*_*_*_CC_FLAGS = -DUFBL_FEATURE_IDME -DUFBL_FEATURE_UNLOCK -std=c99 -ffunction-sections -fdata-sections -DUFBL_FEATURE_FASTBOOT_LOCKDOWN
+
+[Packages]
+  StdLib/StdLib.dec
+  MdePkg/MdePkg.dec
+  EmbeddedPkg/EmbeddedPkg.dec
+  ufbl-features/ufbl-features.dec
+  IdmePlatformPkg/IdmePlatformPkg.dec
+
+[LibraryClasses]
+  LibC
+  LibStdio

@@ -1,0 +1,33 @@
+# Copyright (C) 2019 Amazon.com Inc. or its affiliates.  All Rights Reserved.
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = AmznUnlockLib
+  FILE_GUID                      = abc513db-3614-49b4-abbd-31c4693ed20e
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = AmznUnlockBootLib
+
+#
+# The following information is for reference only and not required by the build tools.
+#
+#  VALID_ARCHITECTURES           = ARM AARCH64
+#
+
+[Sources]
+  unlock.c
+  unlock_ltc.c
+
+[BuildOptions.AARCH64]
+    GCC:*_*_*_CC_FLAGS = -DUFBL_FEATURE_IDME -DUFBL_FEATURE_UNLOCK -DUFBL_FEATURE_UNLOCK_LTC -DLTC_SOURCE -DLTC_NO_FILE -DUSE_LTM -DLTM_DESC -DLTC_CLEAN_STACK -D_WCHAR_T -ffunction-sections -fdata-sections -std=c99
+
+[Packages]
+  StdLib/StdLib.dec
+  MdePkg/MdePkg.dec
+  EmbeddedPkg/EmbeddedPkg.dec
+  ufbl-features/ufbl-features.dec
+  IdmePlatformPkg/IdmePlatformPkg.dec
+
+[LibraryClasses]
+  LibC
+  LibStdio
