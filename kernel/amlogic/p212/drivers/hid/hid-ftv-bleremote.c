@@ -27,7 +27,7 @@
 #include <linux/miscdevice.h>
 #include <linux/spinlock.h>
 #include <linux/version.h>
-#ifdef CONFIG_AMAZON_METRICS_LOG
+#if IS_ENABLED(CONFIG_AMAZON_MINERVA_METRICS_LOG) || IS_ENABLED(CONFIG_AMAZON_METRICS_LOG)
 #include <linux/ktime.h>
 #include <linux/metricslog.h>
 #endif
@@ -78,6 +78,11 @@
 #define CONSUMER_SETTINGS  0x2ee
 #define CONSUMER_METRIC_VIRTUAL 0x2ff /* KEY_MAX */
 
+#if IS_ENABLED(CONFIG_AMAZON_MINERVA_METRICS_LOG)
+#define VENDOR_BT_REMOTE_GROUP_ID     "2999trpq"
+#define VENDOR_BT_REMOTE_SCHEMA_ID    "b9p5/2/04330400"
+#endif
+
 /* Debug feature to trace audio packets being received */
 #define DEBUG_AUDIO_RECEPTION 1
 
@@ -102,7 +107,7 @@ struct ftv_remote_device {
 	unsigned short voice_active;
 	struct hid_device *hdev;
 	unsigned short audio_state_started;
-#ifdef CONFIG_AMAZON_METRICS_LOG
+#if IS_ENABLED(CONFIG_AMAZON_MINERVA_METRICS_LOG) || IS_ENABLED(CONFIG_AMAZON_METRICS_LOG)
 	ktime_t voice_key_down_time;
 	ktime_t voice_key_up_time;
 	ktime_t voice_start_time;
@@ -136,7 +141,7 @@ void audio_buffer_stream_write(const void *raw_input_buffer, unsigned int size);
 static void process_opus_audio_data(unsigned char *raw_input, unsigned int size);
 static void process_adpcm_audio_data(unsigned char *raw_input, unsigned int size);
 
-#ifdef CONFIG_AMAZON_METRICS_LOG
+#if IS_ENABLED(CONFIG_AMAZON_MINERVA_METRICS_LOG) || IS_ENABLED(CONFIG_AMAZON_METRICS_LOG)
 #define METRICS_META_DATA_MAX_LEN 256
 static const char * voice_latency_labels[] = {
 	"0-100ms",
@@ -362,7 +367,7 @@ unlock:
 static int bleremote_audio_dev_open(struct inode *inode, struct file *file)
 {
 	dbg_hid("ftvremote: bleremote_audio_dev_open\n");
-#ifdef CONFIG_AMAZON_METRICS_LOG
+#if IS_ENABLED(CONFIG_AMAZON_MINERVA_METRICS_LOG) || IS_ENABLED(CONFIG_AMAZON_METRICS_LOG)
 	bleremote_dev.voice_start_time = ktime_get();
 #endif
 	return 0;
@@ -371,9 +376,9 @@ static int bleremote_audio_dev_open(struct inode *inode, struct file *file)
 static int bleremote_audio_dev_close(struct inode *inode, struct file *file)
 {
 	dbg_hid("ftvremote: bleremote_audio_dev_close\n");
-#ifdef CONFIG_AMAZON_METRICS_LOG
+#if IS_ENABLED(CONFIG_AMAZON_MINERVA_METRICS_LOG) || IS_ENABLED(CONFIG_AMAZON_METRICS_LOG)
 	{
-		char metadata[METRICS_META_DATA_MAX_LEN];
+		char dimensions[METRICS_META_DATA_MAX_LEN];
 		int pressed_time;
 		int record_time;
 		int start_delay;
@@ -388,16 +393,35 @@ static int bleremote_audio_dev_close(struct inode *inode, struct file *file)
 			bleremote_dev.voice_key_down_time));
 		stop_delay = (int)ktime_to_ms(ktime_sub(bleremote_dev.voice_stop_time,
 			bleremote_dev.voice_key_up_time));
-		snprintf(metadata, METRICS_META_DATA_MAX_LEN,
+#if IS_ENABLED(CONFIG_AMAZON_MINERVA_METRICS_LOG)
+		snprintf(dimensions, METRICS_META_DATA_MAX_LEN,
+				"\"%s\"#\"%s\"$\"%s\"#\"%s\"$\"%s\"#\"%s\"$\"%s\"#\"%s\"",
+				"voice_key_pressed_time",
+				get_voice_latency_label(pressed_time),
+				"voice_data_record_time",
+				get_voice_latency_label(record_time),
+				"voice_record_start_delay",
+				get_voice_latency_label(start_delay),
+				"voice_record_stop_delay",
+				get_voice_latency_label(stop_delay));
+		log_counter_to_vitals_v2(ANDROID_LOG_INFO,
+				VENDOR_BT_REMOTE_GROUP_ID,
+				VENDOR_BT_REMOTE_SCHEMA_ID, "Kernel",
+				"remote-wireless", "bt-ble-voicesearch",
+				"voice-started", 1, "count",
+				NULL, VITALS_NORMAL, dimensions, NULL);
+#else
+		snprintf(dimensions, METRICS_META_DATA_MAX_LEN,
 				"!{\"d\"#{\"%s\"#\"%s\"$\"%s\"#\"%s\"$\"%s\"#\"%s\"$\"%s\"#\"%s\"}}",
 				"voice_key_pressed_time", get_voice_latency_label(pressed_time),
 				"voice_data_record_time", get_voice_latency_label(record_time),
 				"voice_record_start_delay", get_voice_latency_label(start_delay),
 				"voice_record_stop_delay", get_voice_latency_label(stop_delay));
-		log_counter_to_vitals(ANDROID_LOG_INFO,  "Kernel",
+		log_counter_to_vitals(ANDROID_LOG_INFO, "Kernel",
 				"remote-wireless", "bt-ble-voicesearch",
 				"voice-started", 1, "count",
-				metadata, VITALS_NORMAL);
+				dimensions, VITALS_NORMAL);
+#endif
 	}
 #endif
 	return 0;
@@ -466,7 +490,6 @@ static int is_amazon_ble_game_controller(struct hid_device *hdev) {
 static int ftv_remote_raw_event(struct hid_device *hdev, struct hid_report *report,
 	u8 *data, int size)
 {
-
 	unsigned short *keycode;
 	int i;
 	struct ftv_remote_drvdata *remote_drvdata = hid_get_drvdata(hdev);
@@ -515,7 +538,7 @@ static int ftv_remote_raw_event(struct hid_device *hdev, struct hid_report *repo
 				audio_buffer_stream_reset();
 				bleremote_dev.voice_active = true;
 				bleremote_dev.hdev = hdev;
-#ifdef CONFIG_AMAZON_METRICS_LOG
+#if IS_ENABLED(CONFIG_AMAZON_MINERVA_METRICS_LOG) || IS_ENABLED(CONFIG_AMAZON_METRICS_LOG)
 				bleremote_dev.voice_key_down_time = ktime_get();
 #endif
 				dbg_hid("ftvremote: ftv_remote_raw_event voice active: TRUE device %p\n",
@@ -565,20 +588,34 @@ static int ftv_remote_raw_event(struct hid_device *hdev, struct hid_report *repo
 
 				bleremote_dev.voice_active = false;
 				bleremote_dev.hdev = NULL;
-#ifdef CONFIG_AMAZON_METRICS_LOG
+#if IS_ENABLED(CONFIG_AMAZON_MINERVA_METRICS_LOG) || IS_ENABLED(CONFIG_AMAZON_METRICS_LOG)
 				bleremote_dev.voice_key_up_time = ktime_get();
 
 				if (!bleremote_dev.audio_state_started) {
-					char metadata[METRICS_META_DATA_MAX_LEN];
-					int pressed_time = (int)ktime_to_ms(ktime_sub(bleremote_dev.voice_key_up_time,
+					char dimensions[METRICS_META_DATA_MAX_LEN];
+					int pressed_time = (int)ktime_to_ms(ktime_sub(
+						bleremote_dev.voice_key_up_time,
 						bleremote_dev.voice_key_down_time));
-					snprintf(metadata, METRICS_META_DATA_MAX_LEN,
+#if IS_ENABLED(CONFIG_AMAZON_MINERVA_METRICS_LOG)
+					snprintf(dimensions, METRICS_META_DATA_MAX_LEN,
+						 "\"%s\"#\"%s\"", "voice_key_pressed_time",
+						 get_voice_latency_label(pressed_time));
+					log_counter_to_vitals_v2(ANDROID_LOG_INFO,
+						VENDOR_BT_REMOTE_GROUP_ID,
+						VENDOR_BT_REMOTE_SCHEMA_ID,
+						"Kernel",
+						"remote-wireless", "bt-ble-voicesearch",
+						"voice-not-started", 1, "count",
+						NULL, VITALS_NORMAL, dimensions, NULL);
+#else
+					snprintf(dimensions, METRICS_META_DATA_MAX_LEN,
 						 "!{\"d\"#{\"%s\"#\"%s\"}}", "voice_key_pressed_time",
 						 get_voice_latency_label(pressed_time));
 					log_counter_to_vitals(ANDROID_LOG_INFO,  "Kernel",
 						"remote-wireless", "bt-ble-voicesearch",
 						"voice-not-started", 1, "count",
-						metadata, VITALS_NORMAL);
+						dimensions, VITALS_NORMAL);
+#endif
 				}
 #endif
 			}
