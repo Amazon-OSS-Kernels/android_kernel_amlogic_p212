@@ -37,7 +37,7 @@
 #include <linux/virtual_sensor_thermal.h>
 #include <linux/amlogic/saradc.h>
 
-#ifdef CONFIG_AMAZON_METRICS_LOG
+#if IS_ENABLED(CONFIG_AMAZON_METRICS_LOG) || IS_ENABLED(CONFIG_AMAZON_MINERVA_METRICS_LOG)
 #include <linux/metricslog.h>
 #include <linux/vmalloc.h>
 #ifdef CONFIG_PLATFORM_STARK_FEATURE
@@ -48,7 +48,7 @@
 #define ADC_NUM 2
 #endif
 #ifndef THERMO_METRICS_STR_LEN
-#define THERMO_METRICS_STR_LEN 128
+#define THERMO_METRICS_STR_LEN 320
 #endif
 static int metrics_cnt;
 #endif
@@ -287,11 +287,9 @@ static DEFINE_MUTEX(BTS_lock);
 int ntc_bts_get_hw_temp(int index, unsigned long *temp)
 {
 	int t_ret=0, ret=0;
-#ifdef CONFIG_AMAZON_METRICS_LOG
+#if CONFIG_AMAZON_MINERVA_METRICS_LOG
 	char buf[THERMO_METRICS_STR_LEN + 1];
-	char *thermal_metric_prefix = "tmon:def";
 #endif
-
 
 	mutex_lock(&BTS_lock);
 	ret = get_hw_bts_temp(index, &t_ret);
@@ -311,13 +309,15 @@ int ntc_bts_get_hw_temp(int index, unsigned long *temp)
 	}
 
 
-#ifdef CONFIG_AMAZON_METRICS_LOG
+#if IS_ENABLED(CONFIG_AMAZON_MINERVA_METRICS_LOG)
 	if (!index)
 		metrics_cnt++;
 	if ((METRICSCOUNT <= metrics_cnt) && (metrics_cnt < METRICSCOUNT+ADC_NUM)){
 		snprintf(buf, THERMO_METRICS_STR_LEN,
-				"%s:thermistor%d=%d;CT;1:NR",
-				thermal_metric_prefix, index, t_ret);
+			"%s:%s:100:%s,program=ThermalEvent;SY,operation=tmon;SY,"
+			"key=thermistor%d;SY,value=%d;FL:us-east-1",
+			METRICS_THERMAL_GROUP_ID, METRICS_THERMISTOR_SCHEMA_ID,
+			MINERVA_PREDEFINED_REQUIRED_FIELDS, index, t_ret);
 		log_to_metrics(ANDROID_LOG_INFO, "ThermalEvent", buf);
 		metrics_cnt++;
 	}
@@ -496,8 +496,9 @@ static int ntc_bts_probe(struct platform_device *pdev)
 		pr_err("%s Failed to create params attr\n", __func__);
 
 	serial++;
+#if IS_ENABLED(CONFIG_AMAZON_METRICS_LOG) || IS_ENABLED(CONFIG_AMAZON_MINERVA_METRICS_LOG)
 	metrics_cnt = 0;
-
+#endif
 	return 0;
 }
 
