@@ -52,6 +52,7 @@ struct ipv6_devconf {
 	__s32		force_tllao;
 	__s32           ndisc_notify;
 	__s32		suppress_frag_ndisc;
+	__u32		enhanced_dad;
 	void		*sysctl;
 };
 
